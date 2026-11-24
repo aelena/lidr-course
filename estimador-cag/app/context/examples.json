@@ -27,5 +27,54 @@
     ],
     "team": "2 desarrolladores móviles + 1 desarrollador backend + 1 diseñador UX (part-time)",
     "duration": "10-12 semanas"
+  },
+  {
+    "meeting_summary": "El cliente vende productos de cosmética natural en tienda física y quiere una tienda online propia. Necesita catálogo con variantes y filtros, carrito y pago con tarjeta y Bizum, cálculo de envíos por zona, y un panel para gestionar pedidos, devoluciones y cupones de descuento. El stock debe sincronizarse con el ERP que ya usan en la tienda.",
+    "title": "Tienda Online con Integración ERP",
+    "tasks": [
+      { "name": "Diseño UI/UX", "hours": 55 },
+      { "name": "Catálogo de productos (variantes, filtros y búsqueda)", "hours": 60 },
+      { "name": "Carrito y checkout", "hours": 45 },
+      { "name": "Integración con pasarela de pago", "hours": 30 },
+      { "name": "Cálculo de envíos por zona", "hours": 20 },
+      { "name": "Panel de administración (pedidos, devoluciones y cupones)", "hours": 65 },
+      { "name": "Sincronización de stock con el ERP", "hours": 50 },
+      { "name": "Testing y QA", "hours": 45 }
+    ],
+    "team": "2 desarrolladores full-stack + 1 desarrollador backend + 1 diseñador UX (part-time)",
+    "duration": "10-12 semanas"
+  },
+  {
+    "meeting_summary": "El cliente es una empresa de logística que reparte sus datos entre tres sistemas: el de gestión de flota, el de facturación y varias hojas de cálculo. La dirección quiere un cuadro de mando único con indicadores de entregas a tiempo, coste por ruta y ocupación de vehículos, actualizado cada noche, con filtros por delegación y exportación a PDF.",
+    "title": "Cuadro de Mando de Operaciones Logísticas",
+    "tasks": [
+      { "name": "Análisis de fuentes y definición de indicadores", "hours": 30 },
+      { "name": "Pipelines de carga de datos (3 fuentes)", "hours": 75 },
+      { "name": "Modelo de datos y almacén", "hours": 40 },
+      { "name": "Backend API de indicadores", "hours": 35 },
+      { "name": "Dashboard web con filtros por delegación", "hours": 60 },
+      { "name": "Exportación de informes a PDF", "hours": 15 },
+      { "name": "Autenticación y roles", "hours": 20 },
+      { "name": "Testing y QA", "hours": 30 }
+    ],
+    "team": "1 ingeniero de datos + 1 desarrollador full-stack + 1 diseñador UX (part-time)",
+    "duration": "8-10 semanas"
+  },
+  {
+    "meeting_summary": "El cliente, una gestoría, trabaja con una aplicación de escritorio de hace quince años que solo funciona en los ordenadores de la oficina. Quiere pasarla a web para que el equipo trabaje en remoto: gestión de clientes y expedientes, calendario de vencimientos fiscales con avisos por correo, y un área privada donde los clientes suban documentos. Hay que migrar los datos históricos sin parar la actividad.",
+    "title": "Migración a Web de la Aplicación de Gestión de Expedientes",
+    "tasks": [
+      { "name": "Análisis de la aplicación actual y de sus datos", "hours": 35 },
+      { "name": "Diseño UI/UX", "hours": 45 },
+      { "name": "Backend API (clientes y expedientes)", "hours": 80 },
+      { "name": "Calendario de vencimientos y avisos por correo", "hours": 35 },
+      { "name": "Área privada de clientes con subida de documentos", "hours": 50 },
+      { "name": "Autenticación y roles", "hours": 25 },
+      { "name": "Migración de datos históricos", "hours": 60 },
+      { "name": "Testing y QA", "hours": 45 },
+      { "name": "Puesta en marcha en paralelo y formación", "hours": 20 }
+    ],
+    "team": "2 desarrolladores full-stack + 1 desarrollador backend + 1 diseñador UX (part-time)",
+    "duration": "12-14 semanas"
   }
 ]

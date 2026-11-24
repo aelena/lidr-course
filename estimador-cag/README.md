@@ -27,9 +27,9 @@ flowchart TB
     subgraph FASE1["FASE 1 · Construcción del cache — estático, definido en código"]
         direction TB
         I["<b>① Instrucciones del sistema</b><br/><i>app/services/llm_service.py</i><br/>· Contrato de salida<br/>· Reglas de pricing (62,50 / 50 €/h)<br/>· Persona y tono<br/>build_system_prompt()"]
-        E["<b>② Ejemplos canónicos</b><br/><i>app/context/examples.py</i><br/>· 2 estimaciones modelo<br/>· Few-shot in-context learning<br/>· Inyectados literalmente<br/>RAW_EXAMPLES"]
+        E["<b>② Ejemplos canónicos</b><br/><i>app/context/examples.py</i><br/>· 5 estimaciones modelo<br/>· Few-shot in-context learning<br/>· Inyectados literalmente<br/>RAW_EXAMPLES"]
         A["<b>③ Prompt assembler</b><br/>build_system_prompt<br/>format_examples_for_prompt"]
-        C["<b>④ Mensaje de sistema ensamblado · EL CACHE</b><br/>instrucciones + RAW_EXAMPLES × 2<br/><i>Idéntico llamada tras llamada: es el prefijo<br/>que los proveedores pueden cachear</i>"]
+        C["<b>④ Mensaje de sistema ensamblado · EL CACHE</b><br/>instrucciones + hasta 5 ejemplos (3 por defecto)<br/><i>Idéntico llamada tras llamada: es el prefijo<br/>que los proveedores pueden cachear</i>"]
         I --> A
         E --> A
         A --> C
@@ -62,7 +62,14 @@ flowchart TB
 
 El mensaje de sistema solo cambia si la petición cambia las opciones que lo construyen (`use_examples`, `num_examples`, `example_format`, `preprocessing`).
 
-Hoy los proveedores todavía no cobran menos por él. Con dos ejemplos el mensaje ocupa unos 600 tokens, por debajo del mínimo a partir del cual OpenAI cachea la entrada: en llamadas repetidas, `cached_tokens` vuelve a 0. Con Anthropic habría que marcar además el bloque con `cache_control`, cosa que el servicio no hace. El ahorro llegará al crecer el número de ejemplos.
+Que el proveedor cobre menos por él depende de su tamaño. Medido con `gpt-4o-mini` en llamadas repetidas:
+
+| `num_examples` | Tokens del mensaje de sistema | Tokens servidos desde cache |
+|---|---|---|
+| `3` (por defecto) | 895 | 0 |
+| `5` | 1473 | 1408 |
+
+Con los tres ejemplos por defecto el mensaje queda por debajo del mínimo a partir del cual OpenAI cachea la entrada; con los cinco lo supera y casi todo el prefijo se sirve desde cache a partir de la segunda llamada. Con Anthropic habría que marcar además el bloque con `cache_control`, cosa que el servicio no hace.
 
 ## Requisitos
 
