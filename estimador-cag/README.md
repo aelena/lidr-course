@@ -18,6 +18,38 @@ Usa **CAG (Cache-Augmented Generation)**: las estimaciones anteriores de la empr
 - Configuración validada al arrancar con `pydantic-settings`.
 - Documentación interactiva (Swagger) en `/docs`.
 
+## Arquitectura CAG
+
+El "cache" de CAG es el mensaje de sistema: instrucciones y ejemplos definidos en código, que se ensamblan igual en cada llamada.
+
+```mermaid
+flowchart TB
+    subgraph FASE1["FASE 1 · Construcción del cache — estático, definido en código"]
+        direction TB
+        I["<b>① Instrucciones del sistema</b><br/><i>app/services/llm_service.py</i><br/>· Contrato de salida<br/>· Reglas de pricing (62,50 / 50 €/h)<br/>· Persona y tono<br/>build_system_prompt()"]
+        E["<b>② Ejemplos canónicos</b><br/><i>app/context/examples.py</i><br/>· 2 estimaciones modelo<br/>· Few-shot in-context learning<br/>· Inyectados literalmente<br/>RAW_EXAMPLES"]
+        A["<b>③ Prompt assembler</b><br/>build_system_prompt<br/>format_examples_for_prompt"]
+        C["<b>④ Mensaje de sistema ensamblado · EL CACHE</b><br/>instrucciones + RAW_EXAMPLES × 2<br/><i>Idéntico llamada tras llamada: es el prefijo<br/>que los proveedores pueden cachear</i>"]
+        I --> A
+        E --> A
+        A --> C
+    end
+    C -.-> R(["reutilizado en cada llamada ↓"])
+
+    classDef instrucciones stroke:#6366f1,stroke-width:3px
+    classDef ejemplos stroke:#10b981,stroke-width:3px
+    classDef assembler stroke:#a855f7,stroke-width:3px
+    classDef cache stroke:#22d3ee,stroke-width:3px
+    class I instrucciones
+    class E ejemplos
+    class A assembler
+    class C cache
+```
+
+El mensaje de sistema solo cambia si la petición cambia las opciones que lo construyen (`use_examples`, `num_examples`, `example_format`, `preprocessing`).
+
+Hoy los proveedores todavía no cobran menos por él. Con dos ejemplos el mensaje ocupa unos 600 tokens, por debajo del mínimo a partir del cual OpenAI cachea la entrada: en llamadas repetidas, `cached_tokens` vuelve a 0. Con Anthropic habría que marcar además el bloque con `cache_control`, cosa que el servicio no hace. El ahorro llegará al crecer el número de ejemplos.
+
 ## Requisitos
 
 - Python 3.14 o superior
