@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -15,7 +16,8 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     settings = get_settings()
-    app = FastAPI(title=settings.app_name, debug=settings.debug, lifespan=lifespan)
+    logging.basicConfig(level=settings.log_level)
+    app = FastAPI(title="estimador-cag", lifespan=lifespan)
     app.include_router(health.router)
     return app
 
