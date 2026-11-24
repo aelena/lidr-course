@@ -71,6 +71,53 @@ Que el proveedor cobre menos por él depende de su tamaño. Medido con `gpt-4o-m
 
 Con los tres ejemplos por defecto el mensaje queda por debajo del mínimo a partir del cual OpenAI cachea la entrada; con los cinco lo supera y casi todo el prefijo se sirve desde cache a partir de la segunda llamada. Con Anthropic habría que marcar además el bloque con `cache_control`, cosa que el servicio no hace.
 
+### Cómo viaja una petición
+
+Ciclo de vida de `POST /api/v1/estimate`:
+
+```mermaid
+flowchart TB
+    CLIENT["<b>CLIENT</b><br/>curl -X POST /api/v1/estimate<br/>{ transcription: …, preprocessing: none }"]
+
+    subgraph API["API LAYER"]
+        direction LR
+        ROUTER["<i>app/routers/estimations.py</i><br/><b>create_estimation(request)</b><br/><i>orquesta: llamada al servicio · validación · build de la respuesta</i>"]
+        SCHEMAS["<i>app/schemas/estimation.py</i><br/>EstimationRequest<br/>EstimationResponse<br/>EstimationValidation"]
+    end
+
+    subgraph SERVICE["SERVICE LAYER"]
+        LLM["<i>app/services/llm_service.py</i><br/><b>generate_estimation() · build_system_prompt()</b><br/>_complete_with_openai() · _complete_with_anthropic()<br/><i>build del prompt · llamada al proveedor · unpack de la respuesta (text + usage + finish_reason)</i>"]
+    end
+
+    subgraph CONTEXT["CONTEXT"]
+        EXAMPLES["<i>app/context/examples.py</i><br/>RAW_EXAMPLES (× 5)<br/>select_examples()<br/>format_examples_for_prompt()<br/><i>→ inyectados en el system prompt (CAG)</i>"]
+    end
+
+    subgraph VALIDATION["VALIDATION"]
+        EVAL["<i>app/services/evaluation.py</i><br/><b>evaluate_estimation_structure(estimation, finish_reason)</b><br/><i>→ { is_valid, task_count, checks, issues }</i><br/>6 checks deterministas, 8 si hay costes · no llama al LLM"]
+    end
+
+    EXTERNAL["<b>EXTERNAL · OpenAI / Anthropic</b><br/>chat.completions<br/>messages<br/><i>coste · latencia</i>"]
+
+    CLIENT --> ROUTER
+    ROUTER -. valida con .- SCHEMAS
+    ROUTER --> LLM
+    EXAMPLES --> LLM
+    LLM --> EXTERNAL
+    ROUTER -- "si evaluate" --> EVAL
+
+    classDef api stroke:#3b82f6,stroke-width:3px
+    classDef service stroke:#a855f7,stroke-width:3px
+    classDef context stroke:#10b981,stroke-width:3px
+    classDef validation stroke:#f59e0b,stroke-width:3px
+    classDef external stroke:#ef4444,stroke-width:3px
+    class ROUTER,SCHEMAS api
+    class LLM service
+    class EXAMPLES context
+    class EVAL validation
+    class EXTERNAL external
+```
+
 ## Requisitos
 
 - Python 3.14 o superior
