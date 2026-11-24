@@ -1,10 +1,12 @@
-import logging
 from contextlib import asynccontextmanager
 
+import structlog
 from fastapi import FastAPI
 
-from app.config import get_settings
+from app.config import configure_logging, get_settings
 from app.routers import estimations
+
+logger = structlog.get_logger()
 
 DESCRIPTION = """\
 Genera estimaciones de proyectos de software a partir de la transcripción de \
@@ -17,14 +19,20 @@ en el prompt de cada llamada al LLM como referencia.
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: create the LLM client and other shared resources here.
+    settings = get_settings()
+    logger.info(
+        "app_started",
+        environment=settings.app_env,
+        provider=settings.llm_provider,
+        model=settings.llm_model,
+    )
     yield
-    # Shutdown: release them here.
+    logger.info("app_stopped")
 
 
 def create_app() -> FastAPI:
     settings = get_settings()
-    logging.basicConfig(level=settings.log_level)
+    configure_logging()
     app = FastAPI(
         title="Estimador CAG",
         description=DESCRIPTION,

@@ -1,6 +1,8 @@
+import logging
 from functools import lru_cache
 from typing import Literal, Self
 
+import structlog
 from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -42,3 +44,32 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
+
+def configure_logging() -> None:
+    """Set up structlog: JSON in production, human-readable in development."""
+    settings = get_settings()
+    level = logging.getLevelNamesMapping()[settings.log_level]
+
+    if settings.app_env == "production":
+        renderer = structlog.processors.JSONRenderer()
+    else:
+        renderer = structlog.dev.ConsoleRenderer()
+
+    structlog.configure(
+        processors=[
+            structlog.contextvars.merge_contextvars,
+            structlog.processors.add_log_level,
+            structlog.processors.TimeStamper(fmt="iso"),
+            structlog.processors.StackInfoRenderer(),
+            structlog.processors.format_exc_info,
+            renderer,
+        ],
+        # Drops events below LOG_LEVEL before any processor runs.
+        wrapper_class=structlog.make_filtering_bound_logger(level),
+        context_class=dict,
+        logger_factory=structlog.PrintLoggerFactory(),
+        cache_logger_on_first_use=True,
+    )
+    # Third-party libraries (uvicorn, httpx) still log through the standard library.
+    logging.basicConfig(level=level)

@@ -4,12 +4,12 @@ The model returns the estimation as structured data. The markdown and the
 total hours are produced here, so the total always matches the breakdown.
 """
 
-import logging
 from dataclasses import dataclass
 from functools import lru_cache
 
 import anthropic
 import openai
+import structlog
 from anthropic import AsyncAnthropic
 from openai import AsyncOpenAI
 from pydantic import BaseModel, Field
@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field
 from app.config import Settings
 from app.context.examples import ESTIMATION_EXAMPLES, render_estimation, total_hours
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 MAX_OUTPUT_TOKENS = 16000
 
@@ -148,9 +148,8 @@ async def generate_estimation(transcription: str, settings: Settings) -> Estimat
     """Return the estimation for a meeting transcription."""
     system = build_system_prompt()
     user = build_user_prompt(transcription)
-    logger.debug(
-        "Requesting estimation from %s (%s)", settings.llm_provider, settings.llm_model
-    )
+    log = logger.bind(provider=settings.llm_provider, model=settings.llm_model)
+    log.debug("estimation_requested", transcription_chars=len(transcription))
     if settings.llm_provider == "openai":
         draft, input_tokens, output_tokens = await _draft_with_openai(
             settings, system, user
@@ -160,10 +159,19 @@ async def generate_estimation(transcription: str, settings: Settings) -> Estimat
             settings, system, user
         )
     if draft is None or not draft.tasks:
+        log.warning("estimation_unusable", reason="no tasks")
         raise LLMServiceError("The model returned no usable estimation")
     if any(task.hours <= 0 for task in draft.tasks):
+        log.warning("estimation_unusable", reason="non-positive hours")
         raise LLMServiceError("The model returned a task without positive hours")
     data = draft.model_dump()
+    log.info(
+        "estimation_generated",
+        tasks=len(draft.tasks),
+        total_hours=total_hours(data),
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+    )
     return EstimationResult(
         estimation=render_estimation(data),
         total_hours=total_hours(data),
