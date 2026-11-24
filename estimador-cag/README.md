@@ -74,14 +74,34 @@ Respuesta:
 
 ```json
 {
-  "estimation": "## Estimación: Landing Page y Blog\n\n### Desglose de tareas:\n1. ...",
+  "estimation": "## Estimación: Landing Page y Blog
+
+### Desglose de tareas:
+1. ...",
   "model": "gpt-4o-mini",
   "provider": "openai",
+  "finish_reason": "stop",
   "total_hours": 130,
   "input_tokens": 1013,
-  "output_tokens": 122
+  "output_tokens": 122,
+  "validation": null
 }
 ```
+
+Solo `transcription` es obligatorio. El resto de campos del cuerpo ajustan cómo se construye el prompt y cómo se llama al modelo:
+
+| Campo | Descripción | Valor por defecto |
+|---|---|---|
+| `preprocessing` | Normaliza espacios y líneas en blanco de la transcripción | `true` |
+| `use_examples` | Inyecta las estimaciones anteriores; `false` permite comparar sin contexto | `true` |
+| `num_examples` | Cuántas estimaciones anteriores inyectar | todas |
+| `example_format` | Formato de los ejemplos en el prompt: `markdown` o `json` | `markdown` |
+| `model` | Modelo a usar en lugar de `LLM_MODEL` | `LLM_MODEL` |
+| `max_tokens` | Máximo de tokens que puede generar el modelo | el del proveedor |
+| `thinking_budget` | Tokens de razonamiento para modelos de Anthropic que aceptan presupuesto (por ejemplo, `claude-haiku-4-5`). OpenAI lo ignora | sin razonamiento |
+| `evaluate` | Añade a la respuesta, en `validation`, una comprobación de la estructura de la estimación | `false` |
+
+Con `"evaluate": true`, `validation` indica si la estimación tiene título, desglose, total, equipo y duración, si el total coincide con la suma de las tareas y si el modelo terminó sin cortarse.
 
 En Windows, Git Bash y PowerShell pueden enviar los acentos en una codificación que la API rechaza con un 400. Guarda el cuerpo en un archivo UTF-8 y envíalo con `--data-binary "@body.json"`, o usa Swagger.
 
@@ -92,8 +112,9 @@ En Windows, Git Bash y PowerShell pueden enviar los acentos en una codificación
 | `POST` | `/api/v1/estimate` | Genera una estimación a partir de una transcripción |
 | `GET` | `/health` | Estado del servicio, entorno, proveedor y modelo |
 | `GET` | `/docs` | Documentación Swagger |
+| `GET` | `/redoc` | Documentación ReDoc |
 
-Una transcripción vacía devuelve `422`. Un fallo del proveedor de LLM devuelve `502`.
+Un cuerpo inválido (por ejemplo, una transcripción vacía) devuelve `422`. Un fallo del proveedor de LLM, o una respuesta cortada por `max_tokens`, devuelve `500` con el detalle.
 
 ## Estructura del proyecto
 
@@ -101,11 +122,14 @@ Una transcripción vacía devuelve `422`. Un fallo del proveedor de LLM devuelve
 estimador-cag/
 ├── app/
 │   ├── main.py              # Aplicación FastAPI y endpoint /health
-│   ├── config.py            # Configuración cargada desde .env
+│   ├── config.py            # Configuración desde .env y logging (structlog)
 │   ├── routers/
-│   │   └── estimations.py   # Endpoint HTTP y schemas de request/response
+│   │   └── estimations.py   # Endpoint HTTP
+│   ├── schemas/
+│   │   └── estimation.py    # Schemas de request y response
 │   ├── services/
-│   │   └── llm_service.py   # Construcción del prompt y llamada al LLM
+│   │   ├── llm_service.py   # Construcción del prompt y llamada al LLM
+│   │   └── evaluation.py    # Validación de la estructura de una estimación
 │   └── context/
 │       ├── examples.json    # Estimaciones anteriores (datos)
 │       └── examples.py      # Carga y renderizado de los ejemplos
@@ -114,7 +138,7 @@ estimador-cag/
 └── pyproject.toml
 ```
 
-`routers/` gestiona HTTP, `services/` contiene la lógica de negocio y `context/` guarda los datos estáticos que se inyectan en el prompt.
+`routers/` gestiona HTTP, `schemas/` define los contratos de la API, `services/` contiene la lógica de negocio y `context/` guarda los datos estáticos que se inyectan en el prompt.
 
 ### Añadir ejemplos de contexto
 
@@ -127,6 +151,12 @@ uv run pytest
 ```
 
 Los tests no llaman al LLM: sustituyen el servicio por un doble, así que no necesitan API key ni consumen tokens.
+
+Hay además un test de evaluación que sí llama al proveedor configurado en `.env`. Solo se ejecuta si se pide:
+
+```bash
+RUN_LLM_EVAL=1 uv run pytest
+```
 
 ## Contribuir
 

@@ -31,7 +31,7 @@ app = FastAPI(
     redoc_url="/redoc",
     lifespan=lifespan,
 )
-app.include_router(estimations.router, prefix="/api/v1")
+app.include_router(estimations.router)
 
 
 @app.get("/health", tags=["health"], summary="Service status")

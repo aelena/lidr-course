@@ -6,9 +6,11 @@ total computed from the task breakdown, the same way new estimations are.
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 EXAMPLES_PATH = Path(__file__).with_name("examples.json")
+
+ExampleFormat = Literal["markdown", "json"]
 
 
 def total_hours(estimation: dict[str, Any]) -> int:
@@ -34,15 +36,38 @@ def render_estimation(estimation: dict[str, Any]) -> str:
     return rendered
 
 
-def load_examples(path: Path = EXAMPLES_PATH) -> list[dict[str, str]]:
-    raw = json.loads(path.read_text(encoding="utf-8"))
+def render_estimation_json(estimation: dict[str, Any]) -> str:
+    return json.dumps(
+        {
+            "title": estimation["title"],
+            "tasks": estimation["tasks"],
+            "total_hours": total_hours(estimation),
+            "team": estimation["team"],
+            "duration": estimation["duration"],
+        },
+        ensure_ascii=False,
+        indent=2,
+    )
+
+
+def load_raw_examples(path: Path = EXAMPLES_PATH) -> list[dict[str, Any]]:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def format_examples(
+    example_format: ExampleFormat = "markdown", limit: int | None = None
+) -> list[dict[str, str]]:
+    """Return the examples ready for the prompt, at most `limit` of them."""
+    render = render_estimation_json if example_format == "json" else render_estimation
+    selected = RAW_EXAMPLES if limit is None else RAW_EXAMPLES[:limit]
     return [
         {
             "meeting_summary": example["meeting_summary"],
-            "estimation": render_estimation(example),
+            "estimation": render(example),
         }
-        for example in raw
+        for example in selected
     ]
 
 
-ESTIMATION_EXAMPLES = load_examples()
+RAW_EXAMPLES = load_raw_examples()
+ESTIMATION_EXAMPLES = format_examples()

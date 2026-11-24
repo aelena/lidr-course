@@ -3,13 +3,16 @@ import re
 
 from app.context.examples import (
     ESTIMATION_EXAMPLES,
-    EXAMPLES_PATH,
+    RAW_EXAMPLES,
+    format_examples,
     render_estimation,
     total_hours,
 )
-from app.services.llm_service import build_system_prompt, build_user_prompt
-
-RAW_EXAMPLES = json.loads(EXAMPLES_PATH.read_text(encoding="utf-8"))
+from app.services.llm_service import (
+    GenerationOptions,
+    build_system_prompt,
+    build_user_prompt,
+)
 
 
 def test_at_least_two_examples_with_summary_and_estimation():
@@ -68,3 +71,27 @@ def test_user_prompt_carries_the_transcription():
     assert "<transcripcion>\nUna reunión\n</transcripcion>" in build_user_prompt(
         "Una reunión"
     )
+
+
+def test_json_format_renders_examples_as_json_with_the_total():
+    for raw, example in zip(RAW_EXAMPLES, format_examples("json")):
+        data = json.loads(example["estimation"])
+        assert data["title"] == raw["title"]
+        assert data["tasks"] == raw["tasks"]
+        assert data["total_hours"] == total_hours(raw)
+
+
+def test_format_examples_honours_the_limit():
+    assert len(format_examples(limit=1)) == 1
+    assert format_examples(limit=1)[0] == ESTIMATION_EXAMPLES[0]
+
+
+def test_system_prompt_follows_the_generation_options():
+    one_json = build_system_prompt(GenerationOptions(example_format="json", num_examples=1))
+    assert one_json.count("<ejemplo ") == 1
+    assert '"total_hours": 175' in one_json
+
+    without = build_system_prompt(GenerationOptions(use_examples=False))
+    assert "<ejemplo " not in without
+    assert without.startswith("Eres un estimador de software experto")
+    assert "Cuando recibas una transcripción" in without
