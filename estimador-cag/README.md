@@ -34,16 +34,30 @@ flowchart TB
         E --> A
         A --> C
     end
-    C -.-> R(["reutilizado en cada llamada ↓"])
+    subgraph FASE2["FASE 2 · Inferencia — dinámico, una vez por petición"]
+        direction LR
+        U["<b>⑤ Petición del usuario</b><br/><i>app/schemas/estimation.py</i><br/>transcription<br/>preprocessing<br/>EstimationRequest<br/><i>solo esto cambia entre llamadas</i>"]
+        M["<b>⑥ _complete_with_openai() · _complete_with_anthropic()</b><br/>messages = [<br/>role: system → content: ⟨ cache ⟩<br/>role: user → content: ⟨ transcription ⟩<br/>]"]
+        L["<b>⑦ Llamada al modelo</b><br/><i>LLM provider</i><br/>chat.completions<br/>messages.create"]
+        R["<b>⑧ Respuesta estructurada</b><br/>EstimationResponse"]
+        U --> M
+        M --> L
+        L --> R
+    end
+    C -. "reutilizado en cada llamada" .-> M
 
     classDef instrucciones stroke:#6366f1,stroke-width:3px
     classDef ejemplos stroke:#10b981,stroke-width:3px
     classDef assembler stroke:#a855f7,stroke-width:3px
     classDef cache stroke:#22d3ee,stroke-width:3px
+    classDef peticion stroke:#f59e0b,stroke-width:3px
+    classDef respuesta stroke:#f43f5e,stroke-width:3px
     class I instrucciones
     class E ejemplos
     class A assembler
-    class C cache
+    class C,M cache
+    class U peticion
+    class L,R respuesta
 ```
 
 El mensaje de sistema solo cambia si la petición cambia las opciones que lo construyen (`use_examples`, `num_examples`, `example_format`, `preprocessing`).
