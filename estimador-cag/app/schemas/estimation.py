@@ -1,22 +1,27 @@
 from pydantic import BaseModel, Field, field_validator
 
 from app.context.examples import ExampleFormat
+from app.services.llm_service import DEFAULT_MAX_TOKENS, PreprocessingMode
 
 
 class EstimationRequest(BaseModel):
     transcription: str = Field(
         min_length=1, description="Transcription of the meeting with the client."
     )
-    preprocessing: bool = Field(
-        default=True,
-        description="Normalise the whitespace of the transcription before sending it.",
+    preprocessing: PreprocessingMode = Field(
+        default="none",
+        description=(
+            "How a noisy transcription is handled: 'none' sends it as is, "
+            "'inline_cleaning' adds cleaning instructions to the system prompt, "
+            "'two_phase' makes a first LLM call that turns it into a requirements list."
+        ),
     )
     example_format: ExampleFormat = Field(
         default="markdown",
         description="How the past estimations are written in the prompt.",
     )
-    num_examples: int | None = Field(
-        default=None, ge=1, description="Past estimations to inject; all when omitted."
+    num_examples: int = Field(
+        default=3, ge=0, description="Maximum number of past estimations to inject."
     )
     use_examples: bool = Field(
         default=True,
@@ -25,8 +30,10 @@ class EstimationRequest(BaseModel):
     model: str | None = Field(
         default=None, description="Model to use instead of LLM_MODEL."
     )
-    max_tokens: int | None = Field(
-        default=None, ge=1, description="Maximum tokens the model may generate."
+    max_tokens: int = Field(
+        default=DEFAULT_MAX_TOKENS,
+        ge=1,
+        description="Maximum tokens the model may generate.",
     )
     thinking_budget: int | None = Field(
         default=None,
@@ -57,11 +64,21 @@ class EstimationValidation(BaseModel):
 
 
 class EstimationResponse(BaseModel):
-    estimation: str = Field(description="Estimation in markdown.")
+    estimation: str = Field(description="Estimation in markdown, as the model wrote it.")
     model: str
     provider: str
     finish_reason: str = Field(description="Why the model stopped generating.")
-    total_hours: int = Field(description="Sum of the hours of every task.")
+    total_hours: float | None = Field(
+        description=(
+            "Hours of the task breakdown added up in code; null when no task "
+            "could be read from the estimation."
+        )
+    )
     input_tokens: int
     output_tokens: int
+    latency_ms: int = Field(description="Time spent calling the model.")
+    extracted_requirements: str | None = Field(
+        default=None,
+        description="Requirements list from the first call of 'two_phase' preprocessing.",
+    )
     validation: EstimationValidation | None = None

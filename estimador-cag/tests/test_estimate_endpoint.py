@@ -11,9 +11,11 @@ RESULT = {
     "model": "gpt-4o-mini",
     "provider": "openai",
     "finish_reason": "stop",
-    "total_hours": 175,
+    "total_hours": 175.0,
     "input_tokens": 900,
     "output_tokens": 120,
+    "latency_ms": 850,
+    "extracted_requirements": None,
 }
 
 
@@ -45,7 +47,7 @@ def test_passes_the_generation_options_to_the_service(client, generated):
         URL,
         json={
             "transcription": "Una reunión",
-            "preprocessing": False,
+            "preprocessing": "two_phase",
             "example_format": "json",
             "num_examples": 1,
             "use_examples": False,
@@ -56,7 +58,7 @@ def test_passes_the_generation_options_to_the_service(client, generated):
     )
 
     assert generated["options"] == GenerationOptions(
-        preprocessing=False,
+        preprocessing="two_phase",
         example_format="json",
         num_examples=1,
         use_examples=False,
@@ -82,8 +84,9 @@ def test_includes_the_validation_when_asked(client, generated):
         {"transcription": ""},
         {"transcription": "   "},
         {"transcription": 42},
+        {"transcription": "ok", "preprocessing": "magic"},
         {"transcription": "ok", "example_format": "yaml"},
-        {"transcription": "ok", "num_examples": 0},
+        {"transcription": "ok", "num_examples": -1},
         {"transcription": "ok", "max_tokens": 0},
         {"transcription": "ok", "thinking_budget": 100},
     ],

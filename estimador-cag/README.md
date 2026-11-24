@@ -12,7 +12,8 @@ Usa **CAG (Cache-Augmented Generation)**: las estimaciones anteriores de la empr
 
 - Endpoint `POST /api/v1/estimate` que recibe una transcripción y devuelve la estimación en markdown.
 - Proveedor configurable: OpenAI o Anthropic, elegido con `LLM_PROVIDER`.
-- Salida estructurada: el modelo devuelve las tareas con sus horas y el total se calcula en código, así que siempre coincide con el desglose.
+- Tres formas de tratar una transcripción con ruido: enviarla tal cual, dar instrucciones de limpieza en el prompt, o extraer antes los requisitos con una primera llamada.
+- Validación opcional de cada estimación: estructura, sumas de horas y costes, y respuestas cortadas.
 - Ejemplos de contexto en JSON (`app/context/examples.json`), fáciles de ampliar sin tocar código.
 - Configuración validada al arrancar con `pydantic-settings`.
 - Documentación interactiva (Swagger) en `/docs`.
@@ -74,34 +75,50 @@ Respuesta:
 
 ```json
 {
-  "estimation": "## Estimación: Landing Page y Blog
-
-### Desglose de tareas:
-1. ...",
+  "estimation": "## Estimación: Landing Page y Blog ...",
   "model": "gpt-4o-mini",
   "provider": "openai",
   "finish_reason": "stop",
-  "total_hours": 130,
+  "total_hours": 130.0,
   "input_tokens": 1013,
   "output_tokens": 122,
+  "latency_ms": 3850,
+  "extracted_requirements": null,
   "validation": null
 }
 ```
+
+`estimation` es el markdown tal como lo escribe el modelo. `total_hours` no sale del modelo: se suma en código a partir de las tareas del desglose, y es `null` si no se pudo leer ninguna.
 
 Solo `transcription` es obligatorio. El resto de campos del cuerpo ajustan cómo se construye el prompt y cómo se llama al modelo:
 
 | Campo | Descripción | Valor por defecto |
 |---|---|---|
-| `preprocessing` | Normaliza espacios y líneas en blanco de la transcripción | `true` |
+| `preprocessing` | Tratamiento de una transcripción con ruido: `none`, `inline_cleaning` o `two_phase` | `none` |
 | `use_examples` | Inyecta las estimaciones anteriores; `false` permite comparar sin contexto | `true` |
-| `num_examples` | Cuántas estimaciones anteriores inyectar | todas |
+| `num_examples` | Máximo de estimaciones anteriores a inyectar | `3` |
 | `example_format` | Formato de los ejemplos en el prompt: `markdown` o `json` | `markdown` |
 | `model` | Modelo a usar en lugar de `LLM_MODEL` | `LLM_MODEL` |
-| `max_tokens` | Máximo de tokens que puede generar el modelo | el del proveedor |
+| `max_tokens` | Máximo de tokens que puede generar el modelo | `4096` |
 | `thinking_budget` | Tokens de razonamiento para modelos de Anthropic que aceptan presupuesto (por ejemplo, `claude-haiku-4-5`). OpenAI lo ignora | sin razonamiento |
 | `evaluate` | Añade a la respuesta, en `validation`, una comprobación de la estructura de la estimación | `false` |
 
-Con `"evaluate": true`, `validation` indica si la estimación tiene título, desglose, total, equipo y duración, si el total coincide con la suma de las tareas y si el modelo terminó sin cortarse.
+Modos de `preprocessing`:
+
+- `none`: la transcripción se envía tal cual.
+- `inline_cleaning`: el prompt de sistema indica al modelo cómo leer una reunión real (ignorar charla informal, resolver contradicciones, interpretar jerga).
+- `two_phase`: una primera llamada al LLM convierte la transcripción en una lista de requisitos, que es lo que recibe la llamada de estimación. La lista vuelve en `extracted_requirements`, y los tokens de ambas llamadas se suman.
+
+Con `"evaluate": true`, `validation` indica si la estimación tiene desglose de tareas, total de horas, equipo y duración, si el total que escribió el modelo coincide con la suma de las tareas (y lo mismo con los costes, cuando los hay) y si el modelo terminó sin cortarse. El modelo se equivoca al sumar con cierta frecuencia, y esta comprobación lo detecta.
+
+### Formato de salida
+
+`app/services/llm_service.py` tiene dos instrucciones de salida y una asignación que elige la activa:
+
+- `PROMPT_OUTPUT_BASIC` (activa): pide una estimación sin fijar la estructura, así que el modelo imita la de los ejemplos.
+- `PROMPT_OUTPUT_STRUCTURED`: fija resumen, tabla de tareas con horas y coste en EUR, totales, y riesgos y supuestos.
+
+Para cambiarla, edita `ACTIVE_OUTPUT_PROMPT`. El prompt de sistema incluye las tarifas de referencia: 62,50 EUR/hora para desarrollo y 50 EUR/hora para diseño.
 
 En Windows, Git Bash y PowerShell pueden enviar los acentos en una codificación que la API rechaza con un 400. Guarda el cuerpo en un archivo UTF-8 y envíalo con `--data-binary "@body.json"`, o usa Swagger.
 
@@ -114,7 +131,7 @@ En Windows, Git Bash y PowerShell pueden enviar los acentos en una codificación
 | `GET` | `/docs` | Documentación Swagger |
 | `GET` | `/redoc` | Documentación ReDoc |
 
-Un cuerpo inválido (por ejemplo, una transcripción vacía) devuelve `422`. Un fallo del proveedor de LLM, o una respuesta cortada por `max_tokens`, devuelve `500` con el detalle.
+Un cuerpo inválido (por ejemplo, una transcripción vacía) devuelve `422`. Un fallo del proveedor de LLM devuelve `500` con el detalle. Una respuesta cortada por `max_tokens` devuelve `200` con `finish_reason` distinto de `stop`.
 
 ## Estructura del proyecto
 

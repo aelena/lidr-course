@@ -1,7 +1,7 @@
 """Past estimations injected into the LLM prompt as reference.
 
-The data lives in examples.json. Each entry is rendered to markdown with the
-total computed from the task breakdown, the same way new estimations are.
+The data lives in examples.json; the total of each one is computed from its
+task breakdown.
 """
 
 import json
@@ -11,32 +11,28 @@ from typing import Any, Literal
 EXAMPLES_PATH = Path(__file__).with_name("examples.json")
 
 ExampleFormat = Literal["markdown", "json"]
+Example = dict[str, Any]
 
 
-def total_hours(estimation: dict[str, Any]) -> int:
+def total_hours(estimation: Example) -> int:
     return sum(task["hours"] for task in estimation["tasks"])
 
 
-def render_estimation(estimation: dict[str, Any]) -> str:
+def render_estimation(estimation: Example) -> str:
     tasks = "\n".join(
         f"{number}. {task['name']}: {task['hours']} horas"
         for number, task in enumerate(estimation["tasks"], start=1)
     )
-    rendered = (
+    return (
         f"## Estimación: {estimation['title']}\n\n"
         f"### Desglose de tareas:\n{tasks}\n\n"
         f"**Total estimado: {total_hours(estimation)} horas**\n"
         f"**Equipo recomendado: {estimation['team']}**\n"
         f"**Duración estimada: {estimation['duration']}**"
     )
-    assumptions = estimation.get("assumptions") or []
-    if assumptions:
-        items = "\n".join(f"- {assumption}" for assumption in assumptions)
-        rendered += f"\n\n### Supuestos:\n{items}"
-    return rendered
 
 
-def render_estimation_json(estimation: dict[str, Any]) -> str:
+def render_estimation_json(estimation: Example) -> str:
     return json.dumps(
         {
             "title": estimation["title"],
@@ -50,24 +46,38 @@ def render_estimation_json(estimation: dict[str, Any]) -> str:
     )
 
 
-def load_raw_examples(path: Path = EXAMPLES_PATH) -> list[dict[str, Any]]:
+RENDERERS = {"markdown": render_estimation, "json": render_estimation_json}
+
+
+def load_examples(path: Path = EXAMPLES_PATH) -> list[Example]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def format_examples(
-    example_format: ExampleFormat = "markdown", limit: int | None = None
-) -> list[dict[str, str]]:
-    """Return the examples ready for the prompt, at most `limit` of them."""
-    render = render_estimation_json if example_format == "json" else render_estimation
-    selected = RAW_EXAMPLES if limit is None else RAW_EXAMPLES[:limit]
-    return [
-        {
-            "meeting_summary": example["meeting_summary"],
-            "estimation": render(example),
-        }
-        for example in selected
-    ]
+def select_examples(num_examples: int) -> list[Example]:
+    """The first `num_examples` past estimations."""
+    return RAW_EXAMPLES[: max(num_examples, 0)]
 
 
-RAW_EXAMPLES = load_raw_examples()
-ESTIMATION_EXAMPLES = format_examples()
+def format_examples_for_prompt(
+    examples: list[Example], example_format: ExampleFormat = "markdown"
+) -> str:
+    """Render the examples as the block that goes into the system prompt."""
+    render = RENDERERS[example_format]
+    return "\n\n".join(
+        f'<example number="{number}">\n'
+        f"<meeting_summary>\n{example['meeting_summary']}\n</meeting_summary>\n"
+        f"<estimation>\n{render(example)}\n</estimation>\n"
+        f"</example>"
+        for number, example in enumerate(examples, start=1)
+    )
+
+
+RAW_EXAMPLES = load_examples()
+
+ESTIMATION_EXAMPLES = [
+    {
+        "meeting_summary": example["meeting_summary"],
+        "estimation": render_estimation(example),
+    }
+    for example in RAW_EXAMPLES
+]
