@@ -6,7 +6,7 @@
 
 API que genera estimaciones de proyectos de software a partir de la transcripción de una reunión con el cliente.
 
-Usa **CAG (Context-Augmented Generation)**: las estimaciones anteriores de la empresa viajan en el prompt de cada llamada al LLM, y el modelo las toma como referencia para calibrar tareas, horas, equipo y duración. No hay base de datos vectorial ni paso de recuperación.
+Usa **CAG (Cache-Augmented Generation)**: las estimaciones anteriores de la empresa viajan en el prompt de cada llamada al LLM, y el modelo las toma como referencia para calibrar tareas, horas, equipo y duración. No hay base de datos vectorial ni paso de recuperación.
 
 ## Características
 

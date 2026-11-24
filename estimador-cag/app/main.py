@@ -6,51 +6,40 @@ from fastapi import FastAPI
 from app.config import configure_logging, get_settings
 from app.routers import estimations
 
-logger = structlog.get_logger()
-
-DESCRIPTION = """\
-Genera estimaciones de proyectos de software a partir de la transcripción de \
-una reunión con el cliente.
-
-Usa CAG (Context-Augmented Generation): las estimaciones anteriores viajan \
-en el prompt de cada llamada al LLM como referencia.
-"""
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Application startup and shutdown lifecycle."""
+    configure_logging()
+    log = structlog.get_logger()
     settings = get_settings()
-    logger.info(
-        "app_started",
+    log.info(
+        "application_started",
         environment=settings.app_env,
         provider=settings.llm_provider,
         model=settings.llm_model,
     )
     yield
-    logger.info("app_stopped")
+    log.info("application_shutdown")
 
 
-def create_app() -> FastAPI:
+app = FastAPI(
+    title="Software Estimation CAG Service",
+    description="AI-powered software estimation service using Cache Augmented Generation architecture",
+    version="0.1.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    lifespan=lifespan,
+)
+app.include_router(estimations.router, prefix="/api/v1")
+
+
+@app.get("/health", tags=["health"], summary="Service status")
+def health() -> dict[str, str]:
     settings = get_settings()
-    configure_logging()
-    app = FastAPI(
-        title="Estimador CAG",
-        description=DESCRIPTION,
-        version="0.1.0",
-        lifespan=lifespan,
-    )
-    app.include_router(estimations.router, prefix="/api/v1")
-
-    @app.get("/health", tags=["health"], summary="Estado del servicio")
-    def health() -> dict[str, str]:
-        return {
-            "status": "ok",
-            "environment": settings.app_env,
-            "provider": settings.llm_provider,
-            "model": settings.llm_model,
-        }
-
-    return app
-
-
-app = create_app()
+    return {
+        "status": "ok",
+        "environment": settings.app_env,
+        "provider": settings.llm_provider,
+        "model": settings.llm_model,
+    }

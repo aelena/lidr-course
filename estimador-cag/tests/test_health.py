@@ -25,9 +25,10 @@ def test_health_does_not_expose_api_keys(client):
 
 def test_swagger_docs_are_available(client):
     assert client.get("/docs").status_code == 200
+    assert client.get("/redoc").status_code == 200
 
     schema = client.get("/openapi.json").json()
 
-    assert schema["info"]["title"] == "Estimador CAG"
+    assert schema["info"]["title"] == "Software Estimation CAG Service"
     assert "/api/v1/estimate" in schema["paths"]
     assert "/health" in schema["paths"]
