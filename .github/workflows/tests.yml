@@ -1,0 +1,25 @@
+name: Tests
+
+on:
+  push:
+    paths:
+      - "estimador-cag/**"
+      - ".github/workflows/tests.yml"
+  pull_request:
+    paths:
+      - "estimador-cag/**"
+      - ".github/workflows/tests.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: estimador-cag
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Install dependencies
+        run: uv sync --locked
+      - name: Run unit tests
+        run: uv run pytest
