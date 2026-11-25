@@ -10,7 +10,7 @@ Usa **CAG (Cache-Augmented Generation)**: las estimaciones anteriores de la empr
 
 ## Características
 
-- Interfaz de chat en Streamlit: se pega la transcripción, se recibe la estimación y se puede seguir preguntando sobre ella.
+- Interfaz de chat en Streamlit: se pega la transcripción, la estimación aparece en streaming según la escribe el modelo y se puede seguir preguntando sobre ella.
 - Endpoint `POST /api/v1/estimate` que recibe una transcripción y devuelve la estimación en markdown.
 - Proveedor configurable: OpenAI o Anthropic, elegido con `LLM_PROVIDER`.
 - Tres formas de tratar una transcripción con ruido: enviarla tal cual, dar instrucciones de limpieza en el prompt, o extraer antes los requisitos con una primera llamada.
@@ -182,6 +182,8 @@ uv run streamlit run streamlit_app.py
 Se abre en `http://localhost:8501`. Pega la transcripción de la reunión en el cuadro de texto inferior y pulsa Enter (Mayús+Enter añade un salto de línea).
 
 La conversación se guarda en `st.session_state`, así que permanece en pantalla mientras dure la sesión del navegador, y cada pregunta viaja al modelo junto con los turnos anteriores: después de una estimación puedes pedir cambios ("¿y sin la app móvil?") sin volver a pegar la transcripción. Recargar la página empieza una conversación nueva.
+
+La respuesta se muestra en streaming: `st.write_stream` pinta cada fragmento en cuanto el proveedor lo envía, sin esperar a la estimación completa. Con `gpt-4o-mini` el primer fragmento llega en uno o dos segundos y una estimación entera tarda entre siete y diez.
 
 La interfaz llama a `stream_estimation`, del mismo servicio que usa la API, con las opciones por defecto: mismo mensaje de sistema, mismos ejemplos y mismo modelo (`LLM_MODEL`). Si el proveedor falla, el error se muestra en el chat y ese turno no se guarda.
 

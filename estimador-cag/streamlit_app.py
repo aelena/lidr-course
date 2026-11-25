@@ -1,7 +1,8 @@
 """Chat interface for the estimator.
 
-Paste a meeting transcription and get a software estimation, with the same
-CAG system prompt as the HTTP endpoint. Run it from this folder:
+Paste a meeting transcription and watch the software estimation arrive token
+by token, with the same CAG system prompt as the HTTP endpoint. Run it from
+this folder:
 
     uv run streamlit run streamlit_app.py
 
@@ -76,17 +77,15 @@ for message in messages:
 if prompt := st.chat_input("Pega aquí la transcripción de la reunión"):
     question = {"role": "user", "content": prompt}
     show(question)
+    stream = stream_estimation([*messages, question])
     with st.chat_message("assistant"):
         try:
-            with st.spinner("Estimando…"):
-                stream = stream_estimation([*messages, question])
-                for _ in stream:
-                    pass
+            # Writes each delta as the provider sends it; the request starts here.
+            st.write_stream(stream)
         except LLMServiceError as error:
             # The failed turn is not stored, so the history stays in user/assistant pairs.
             st.error(f"No se pudo generar la estimación: {error}")
         else:
-            st.markdown(stream.result["estimation"])
             messages += [
                 question,
                 {"role": "assistant", "content": stream.result["estimation"]},
