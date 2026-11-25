@@ -11,7 +11,7 @@ from typing import Any
 
 NUMBER = r"\d[\d.,]*"
 NUMBERED_TASK = re.compile(
-    rf"^\s*\d+\.\s+.+?:\s*\**({NUMBER})\**\s*(?:horas|hours|h)\b", re.M | re.I
+    rf"^\s*\d+\.\s+.+?:\s*\**\s*({NUMBER})\**\s*(?:horas|hours|h)\b", re.M | re.I
 )
 HOURS_CELL = re.compile(rf"^({NUMBER})\s*(?:horas|hours|h)?$", re.I)
 COST_CELL = re.compile(rf"^(?:EUR|€)?\s*({NUMBER})\s*(?:EUR|€)?$", re.I)

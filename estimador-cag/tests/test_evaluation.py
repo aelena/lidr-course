@@ -157,6 +157,16 @@ def test_sum_task_hours_reads_both_formats():
     assert sum_task_hours("No puedo estimar esto.") is None
 
 
+def test_sum_task_hours_reads_bold_task_names_and_bold_hours():
+    estimation = (
+        "1. **Diseño UI/UX:** 40 horas  \n   - Prototipos\n"
+        "2. **Backend API**: 60 horas\n"
+        "3. Autenticación: **20 horas**\n"
+    )
+
+    assert sum_task_hours(estimation) == 120
+
+
 @pytest.mark.parametrize(
     ("text", "value"),
     [
