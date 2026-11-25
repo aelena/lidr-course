@@ -14,6 +14,7 @@ Usa **CAG (Cache-Augmented Generation)**: las estimaciones anteriores de la empr
 - Proveedor configurable: OpenAI o Anthropic, elegido con `LLM_PROVIDER`.
 - Tres formas de tratar una transcripción con ruido: enviarla tal cual, dar instrucciones de limpieza en el prompt, o extraer antes los requisitos con una primera llamada.
 - Validación opcional de cada estimación: estructura, sumas de horas y costes, y respuestas cortadas.
+- Generación en streaming desde el servicio (`stream_estimation`), con la conversación completa como entrada.
 - Ejemplos de contexto en JSON (`app/context/examples.json`), fáciles de ampliar sin tocar código.
 - Configuración validada al arrancar con `pydantic-settings`.
 - Documentación interactiva (Swagger) en `/docs`.
@@ -233,6 +234,22 @@ En Windows, Git Bash y PowerShell pueden enviar los acentos en una codificación
 
 Un cuerpo inválido (por ejemplo, una transcripción vacía) devuelve `422`. Un fallo del proveedor de LLM devuelve `500` con el detalle. Una respuesta cortada por `max_tokens` devuelve `200` con `finish_reason` distinto de `stop`.
 
+### Respuesta en streaming
+
+El endpoint HTTP responde de una vez. Para mostrar el texto según lo escribe el modelo, `app/services/llm_service.py` ofrece `stream_estimation`:
+
+```python
+from app.services.llm_service import stream_estimation
+
+stream = stream_estimation([{"role": "user", "content": "El cliente necesita..."}])
+for delta in stream:
+    print(delta, end="", flush=True)
+
+stream.result  # mismas claves que la respuesta del endpoint, más first_token_ms
+```
+
+Recibe la conversación completa (mensajes `user` y `assistant` alternados, el último del usuario), de modo que se puede seguir preguntando sobre una estimación. Construye el mismo mensaje de sistema que el endpoint, acepta las mismas opciones (`GenerationOptions`) y no llama al proveedor hasta que se empieza a iterar. `first_token_ms` es el tiempo hasta el primer fragmento; `latency_ms`, el total.
+
 ## Estructura del proyecto
 
 ```
@@ -245,7 +262,7 @@ estimador-cag/
 │   ├── schemas/
 │   │   └── estimation.py    # Schemas de request y response
 │   ├── services/
-│   │   ├── llm_service.py   # Construcción del prompt y llamada al LLM
+│   │   ├── llm_service.py   # Construcción del prompt y llamada al LLM (completa o en streaming)
 │   │   └── evaluation.py    # Validación de la estructura de una estimación
 │   └── context/
 │       ├── examples.json    # Estimaciones anteriores (datos)
