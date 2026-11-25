@@ -4,12 +4,13 @@
 [![Tests](https://img.shields.io/github/actions/workflow/status/aelena/lidr-course/tests.yml?style=flat&logo=github&label=tests)](https://github.com/aelena/lidr-course/actions/workflows/tests.yml) [![Version](https://img.shields.io/badge/version-0.1.0-blue?style=flat)](https://github.com/aelena/lidr-course/blob/estimador-cag/estimador-cag/pyproject.toml) [![Python](https://img.shields.io/badge/python-3.14+-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/) [![FastAPI](https://img.shields.io/badge/fastapi-0.165+-009688?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/) [![Tested with pytest](https://img.shields.io/badge/tested%20with-pytest-0A9EDC?style=flat&logo=pytest&logoColor=white)](https://docs.pytest.org/)
 <!-- badges-end -->
 
-API que genera estimaciones de proyectos de software a partir de la transcripción de una reunión con el cliente.
+Servicio que genera estimaciones de proyectos de software a partir de la transcripción de una reunión con el cliente. Se usa desde una API HTTP o desde una interfaz de chat en el navegador.
 
 Usa **CAG (Cache-Augmented Generation)**: las estimaciones anteriores de la empresa viajan en el prompt de cada llamada al LLM, y el modelo las toma como referencia para calibrar tareas, horas, equipo y duración. No hay base de datos vectorial ni paso de recuperación.
 
 ## Características
 
+- Interfaz de chat en Streamlit: se pega la transcripción, se recibe la estimación y se puede seguir preguntando sobre ella.
 - Endpoint `POST /api/v1/estimate` que recibe una transcripción y devuelve la estimación en markdown.
 - Proveedor configurable: OpenAI o Anthropic, elegido con `LLM_PROVIDER`.
 - Tres formas de tratar una transcripción con ruido: enviarla tal cual, dar instrucciones de limpieza en el prompt, o extraer antes los requisitos con una primera llamada.
@@ -156,6 +157,22 @@ La aplicación no arranca si falta la clave del proveedor seleccionado. Si cambi
 
 ## Uso
 
+Hay dos formas de usar el estimador: la interfaz de chat y la API HTTP. Son procesos independientes; ninguno necesita al otro.
+
+### Interfaz de chat
+
+```bash
+uv run streamlit run streamlit_app.py
+```
+
+Se abre en `http://localhost:8501`. Pega la transcripción de la reunión en el cuadro de texto inferior y pulsa Enter (Mayús+Enter añade un salto de línea).
+
+La conversación se guarda en `st.session_state`, así que permanece en pantalla mientras dure la sesión del navegador, y cada pregunta viaja al modelo junto con los turnos anteriores: después de una estimación puedes pedir cambios ("¿y sin la app móvil?") sin volver a pegar la transcripción. Recargar la página empieza una conversación nueva.
+
+La interfaz llama a `stream_estimation`, del mismo servicio que usa la API, con las opciones por defecto: mismo mensaje de sistema, mismos ejemplos y mismo modelo (`LLM_MODEL`). Si el proveedor falla, el error se muestra en el chat y ese turno no se guarda.
+
+### API HTTP
+
 Arranca el servidor:
 
 ```bash
@@ -269,6 +286,7 @@ estimador-cag/
 │       └── examples.py      # Carga y renderizado de los ejemplos
 ├── tests/
 ├── .env.example
+├── streamlit_app.py         # Interfaz de chat (Streamlit)
 └── pyproject.toml
 ```
 
@@ -284,7 +302,7 @@ Añade una entrada a `app/context/examples.json` con `meeting_summary`, `title`,
 uv run pytest
 ```
 
-Los tests no llaman al LLM: sustituyen el servicio por un doble, así que no necesitan API key ni consumen tokens.
+Los tests no llaman al LLM: sustituyen el servicio por un doble, así que no necesitan API key ni consumen tokens. La interfaz de chat se prueba con `AppTest`, de Streamlit, sin abrir un navegador.
 
 Hay además un test de evaluación que sí llama al proveedor configurado en `.env`. Solo se ejecuta si se pide:
 
