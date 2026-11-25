@@ -3,8 +3,10 @@
 from pathlib import Path
 
 import pytest
+import streamlit as st
 from streamlit.testing.v1 import AppTest
 
+from app.config import get_settings
 from app.context.examples import ESTIMATION_EXAMPLES
 from app.services import llm_service
 from app.services.llm_service import LLMServiceError
@@ -103,3 +105,37 @@ def test_a_provider_failure_is_shown_and_not_stored(app, monkeypatch):
     assert not app.exception
     assert "OpenAI request failed" in app.error[0].value
     assert app.session_state["messages"] == []
+
+
+# --- API key ---------------------------------------------------------------
+
+
+@pytest.fixture
+def no_api_key(monkeypatch, tmp_path):
+    """No key in the environment and no .env in the working directory."""
+    monkeypatch.delenv("OPENAI_API_KEY")
+    monkeypatch.chdir(tmp_path)
+    get_settings.cache_clear()
+    st.cache_resource.clear()
+    yield
+    get_settings.cache_clear()
+    st.cache_resource.clear()
+
+
+def test_the_api_key_can_come_from_streamlit_secrets(no_api_key):
+    app = AppTest.from_file(str(APP), default_timeout=10)
+    app.secrets["OPENAI_API_KEY"] = "key-from-secrets"
+
+    app.run()
+
+    assert not app.exception
+    assert not app.error
+    assert get_settings().llm_api_key.get_secret_value() == "key-from-secrets"
+
+
+def test_without_an_api_key_the_app_explains_what_is_missing(no_api_key):
+    app = AppTest.from_file(str(APP), default_timeout=10).run()
+
+    assert not app.exception
+    assert "OPENAI_API_KEY is required" in app.error[0].value
+    assert len(app.chat_input) == 0

@@ -4,10 +4,16 @@ Paste a meeting transcription and get a software estimation, with the same
 CAG system prompt as the HTTP endpoint. Run it from this folder:
 
     uv run streamlit run streamlit_app.py
+
+The API key is never written here: it comes from the environment, from
+Streamlit secrets or from `.env`, in that order.
 """
+
+import os
 
 import streamlit as st
 from pydantic import ValidationError
+from streamlit.errors import StreamlitSecretNotFoundError
 
 from app.config import Settings, configure_logging, get_settings
 from app.services.llm_service import LLMServiceError, stream_estimation
@@ -15,9 +21,27 @@ from app.services.llm_service import LLMServiceError, stream_estimation
 st.set_page_config(page_title="Estimador CAG", page_icon="📐")
 
 
+def export_secrets() -> None:
+    """Copy the settings found in st.secrets to the environment, where Settings reads them.
+
+    Variables already set in the environment win, and `.env` fills in the rest.
+    """
+    try:
+        secrets = {
+            name: str(st.secrets[name])
+            for name in map(str.upper, Settings.model_fields)
+            if name in st.secrets
+        }
+    except StreamlitSecretNotFoundError:  # no secrets.toml: .env or the environment decide
+        return
+    for name, value in secrets.items():
+        os.environ.setdefault(name, value)
+
+
 @st.cache_resource
 def load_settings() -> Settings:
     """Validate the configuration and set up logging once per server process."""
+    export_secrets()
     settings = get_settings()
     configure_logging()
     return settings

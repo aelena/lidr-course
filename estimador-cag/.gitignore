@@ -10,3 +10,4 @@ dist/
 
 # Local configuration and secrets
 .env
+.streamlit/secrets.toml

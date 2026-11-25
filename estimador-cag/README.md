@@ -155,6 +155,20 @@ La aplicación no arranca si falta la clave del proveedor seleccionado. Si cambi
 
 `.env` está en `.gitignore`: las claves no se versionan.
 
+### Secretos de Streamlit
+
+La interfaz de chat acepta además las mismas variables desde [los secretos de Streamlit](https://docs.streamlit.io/develop/concepts/connections/secrets-management), que es donde se configuran al desplegar en Streamlit Community Cloud. En local, crea `.streamlit/secrets.toml`:
+
+```toml
+OPENAI_API_KEY = "sk-..."
+LLM_PROVIDER = "openai"
+LLM_MODEL = "gpt-4o-mini"
+```
+
+El orden de preferencia es: variables de entorno, secretos de Streamlit, `.env`. La clave no aparece en el código en ningún caso, y `.streamlit/secrets.toml` también está en `.gitignore`. Si falta la clave del proveedor elegido, la interfaz lo indica en pantalla en lugar del chat.
+
+La API HTTP no lee los secretos de Streamlit: solo el entorno y `.env`.
+
 ## Uso
 
 Hay dos formas de usar el estimador: la interfaz de chat y la API HTTP. Son procesos independientes; ninguno necesita al otro.
