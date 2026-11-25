@@ -107,6 +107,60 @@ def test_a_provider_failure_is_shown_and_not_stored(app, monkeypatch):
     assert app.session_state["messages"] == []
 
 
+# --- sidebar ---------------------------------------------------------------
+
+
+def _metrics(app: AppTest) -> dict[str, str]:
+    return {metric.label: metric.value for metric in app.sidebar.metric}
+
+
+def test_the_sidebar_shows_the_system_prompt_the_service_sends(app):
+    prompt, context = app.sidebar.expander
+
+    assert prompt.code[0].value == llm_service.build_system_prompt()
+    assert "System prompt" in prompt.label
+    assert "3 estimaciones" in context.label
+    assert [code.value for code in context.code] == [
+        example["estimation"] for example in ESTIMATION_EXAMPLES[:3]
+    ]
+
+
+def test_the_sidebar_has_nothing_to_edit(app):
+    sidebar = app.sidebar
+
+    assert not (sidebar.text_input or sidebar.text_area or sidebar.selectbox)
+    assert not (sidebar.number_input or sidebar.slider or sidebar.checkbox)
+
+
+def test_before_the_first_call_the_sidebar_names_the_configured_model(app):
+    assert _metrics(app) == {}
+    assert any("gpt-4o-mini" in text.value for text in app.sidebar.markdown)
+
+
+def test_the_sidebar_shows_the_metrics_of_the_last_call(app, conversations):
+    _ask(app, "El cliente quiere un inventario")
+
+    assert _metrics(app) == {
+        "Tokens de entrada": "800",
+        "Tokens de salida": "90",
+        "Tiempo de respuesta": "4,2 s",
+        "Primer token": "0,6 s",
+    }
+    assert any("gpt-4o-mini" in text.value for text in app.sidebar.markdown)
+    assert app.session_state["last_call"]["input_tokens"] == 800
+    assert "estimation" not in app.session_state["last_call"]
+
+
+def test_a_new_conversation_clears_the_chat_and_the_metrics(app, conversations):
+    _ask(app, "El cliente quiere un inventario")
+
+    app.sidebar.button[0].click().run()
+
+    assert len(app.chat_message) == 0
+    assert _metrics(app) == {}
+    assert app.session_state["messages"] == []
+
+
 # --- API key ---------------------------------------------------------------
 
 

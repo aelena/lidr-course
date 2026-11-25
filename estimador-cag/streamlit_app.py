@@ -11,13 +11,24 @@ Streamlit secrets or from `.env`, in that order.
 """
 
 import os
+from typing import Any
 
 import streamlit as st
 from pydantic import ValidationError
+from streamlit.delta_generator import DeltaGenerator
 from streamlit.errors import StreamlitSecretNotFoundError
 
 from app.config import Settings, configure_logging, get_settings
-from app.services.llm_service import LLMServiceError, stream_estimation
+from app.context.examples import render_estimation, select_examples, total_hours
+from app.services.llm_service import (
+    GenerationOptions,
+    LLMServiceError,
+    stream_estimation,
+    system_prompt_for,
+)
+
+# The same defaults as the HTTP endpoint; the sidebar shows what they produce.
+OPTIONS = GenerationOptions()
 
 st.set_page_config(page_title="Estimador CAG", page_icon="📐")
 
@@ -55,6 +66,57 @@ def show(message: dict[str, str]) -> None:
         st.markdown(content.replace("\n", "  \n") if message["role"] == "user" else content)
 
 
+def thousands(number: int) -> str:
+    return f"{number:,}".replace(",", ".")
+
+
+def seconds(milliseconds: int) -> str:
+    return f"{milliseconds / 1000:.1f} s".replace(".", ",")
+
+
+def show_metrics(panel: DeltaGenerator, settings: Settings, call: dict[str, Any] | None) -> None:
+    """Fill the metrics panel with the last call, or with what the next one will use."""
+    with panel.container():
+        st.subheader("Última llamada")
+        if call is None:
+            st.markdown(f"**Modelo:** `{OPTIONS.model or settings.llm_model}` ({settings.llm_provider})")
+            st.caption("Todavía no se ha llamado al modelo en esta sesión.")
+            return
+        st.markdown(f"**Modelo:** `{call['model']}` ({call['provider']})")
+        left, right = st.columns(2)
+        left.metric("Tokens de entrada", thousands(call["input_tokens"]))
+        right.metric("Tokens de salida", thousands(call["output_tokens"]))
+        left.metric("Tiempo de respuesta", seconds(call["latency_ms"]))
+        right.metric("Primer token", seconds(call["first_token_ms"]))
+        if call["finish_reason"] not in ("stop", "end_turn"):
+            st.warning(f"Respuesta incompleta: el modelo paró por `{call['finish_reason']}`.")
+
+
+def show_context() -> None:
+    """Read-only view of what every call sends before the conversation."""
+    system_prompt = system_prompt_for(OPTIONS)
+    examples = select_examples(OPTIONS.num_examples) if OPTIONS.use_examples else []
+
+    st.subheader("Qué recibe el modelo")
+    st.caption("Solo lectura. Es lo mismo que envía el endpoint `POST /api/v1/estimate`.")
+    with st.expander(f"System prompt ({thousands(len(system_prompt))} caracteres)"):
+        st.code(system_prompt, language=None, wrap_lines=True)
+    with st.expander(f"Contexto estático inyectado ({len(examples)} estimaciones)"):
+        st.caption(
+            "Estimaciones anteriores de `app/context/examples.json`. "
+            "Viajan dentro del system prompt en cada llamada: son el cache de CAG."
+        )
+        for number, example in enumerate(examples, start=1):
+            st.markdown(f"**{number}. {example['title']}** · {total_hours(example)} horas")
+            st.caption(example["meeting_summary"])
+            st.code(render_estimation(example), language="markdown", wrap_lines=True)
+
+
+def new_conversation() -> None:
+    st.session_state.messages = []
+    st.session_state.last_call = None
+
+
 st.title("Estimador CAG")
 st.caption(
     "Pega la transcripción de una reunión con el cliente y recibe una estimación "
@@ -70,6 +132,16 @@ except ValidationError as error:
 # Streamlit reruns this script on every interaction; the conversation lives in
 # the session state, which survives the reruns of one browser session.
 messages: list[dict[str, str]] = st.session_state.setdefault("messages", [])
+st.session_state.setdefault("last_call", None)
+
+with st.sidebar:
+    # A placeholder, so the metrics can be replaced as soon as a stream ends.
+    metrics_panel = st.empty()
+    show_metrics(metrics_panel, settings, st.session_state.last_call)
+    st.divider()
+    show_context()
+    st.divider()
+    st.button("Nueva conversación", on_click=new_conversation)
 
 for message in messages:
     show(message)
@@ -77,7 +149,7 @@ for message in messages:
 if prompt := st.chat_input("Pega aquí la transcripción de la reunión"):
     question = {"role": "user", "content": prompt}
     show(question)
-    stream = stream_estimation([*messages, question])
+    stream = stream_estimation([*messages, question], OPTIONS)
     with st.chat_message("assistant"):
         try:
             # Writes each delta as the provider sends it; the request starts here.
@@ -90,3 +162,9 @@ if prompt := st.chat_input("Pega aquí la transcripción de la reunión"):
                 question,
                 {"role": "assistant", "content": stream.result["estimation"]},
             ]
+            st.session_state.last_call = {
+                key: value
+                for key, value in stream.result.items()
+                if key not in ("estimation", "extracted_requirements")
+            }
+            show_metrics(metrics_panel, settings, st.session_state.last_call)

@@ -11,6 +11,7 @@ Usa **CAG (Cache-Augmented Generation)**: las estimaciones anteriores de la empr
 ## Características
 
 - Interfaz de chat en Streamlit: se pega la transcripción, la estimación aparece en streaming según la escribe el modelo y se puede seguir preguntando sobre ella.
+- Panel lateral de solo lectura con el system prompt, las estimaciones de ejemplo inyectadas y las métricas de la última llamada.
 - Endpoint `POST /api/v1/estimate` que recibe una transcripción y devuelve la estimación en markdown.
 - Proveedor configurable: OpenAI o Anthropic, elegido con `LLM_PROVIDER`.
 - Tres formas de tratar una transcripción con ruido: enviarla tal cual, dar instrucciones de limpieza en el prompt, o extraer antes los requisitos con una primera llamada.
@@ -186,6 +187,18 @@ La conversación se guarda en `st.session_state`, así que permanece en pantalla
 La respuesta se muestra en streaming: `st.write_stream` pinta cada fragmento en cuanto el proveedor lo envía, sin esperar a la estimación completa. Con `gpt-4o-mini` el primer fragmento llega en uno o dos segundos y una estimación entera tarda entre siete y diez.
 
 La interfaz llama a `stream_estimation`, del mismo servicio que usa la API, con las opciones por defecto: mismo mensaje de sistema, mismos ejemplos y mismo modelo (`LLM_MODEL`). Si el proveedor falla, el error se muestra en el chat y ese turno no se guarda.
+
+#### Panel lateral
+
+La barra lateral (se pliega con la flecha de su esquina) muestra, sin permitir editar nada:
+
+| Sección | Contenido |
+|---|---|
+| Última llamada | Modelo y proveedor, tokens de entrada, tokens de salida, tiempo de respuesta total y tiempo hasta el primer token. Se actualiza al terminar cada respuesta |
+| System prompt | El mensaje de sistema completo que se envía en cada llamada, tal como lo construye `build_system_prompt()` |
+| Contexto estático inyectado | Las estimaciones de `app/context/examples.json` que viajan dentro del system prompt (3 por defecto), cada una con el resumen de su reunión |
+
+Los tokens de entrada crecen con cada turno, porque la conversación entera vuelve a enviarse; el system prompt, en cambio, es idéntico en todas las llamadas. "Nueva conversación" vacía el chat y las métricas.
 
 ### API HTTP
 
