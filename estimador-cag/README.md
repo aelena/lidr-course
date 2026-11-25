@@ -29,7 +29,7 @@ El "cache" de CAG es el mensaje de sistema: instrucciones y ejemplos definidos e
 flowchart TB
     subgraph FASE1["FASE 1 · Construcción del cache — estático, definido en código"]
         direction TB
-        I["<b>① Instrucciones del sistema</b><br/><i>app/services/llm_service.py</i><br/>· Contrato de salida<br/>· Reglas de pricing (62,50 / 50 €/h)<br/>· Persona y tono<br/>build_system_prompt()"]
+        I["<b>① Instrucciones del sistema</b><br/><i>app/services/llm_service.py</i><br/>· Contrato de salida<br/>· Tarifas del mercado español (40–60 €/h)<br/>· Persona y tono<br/>build_system_prompt()"]
         E["<b>② Ejemplos canónicos</b><br/><i>app/context/examples.py</i><br/>· 5 estimaciones modelo<br/>· Few-shot in-context learning<br/>· Inyectados literalmente<br/>RAW_EXAMPLES"]
         A["<b>③ Prompt assembler</b><br/>build_system_prompt<br/>format_examples_for_prompt"]
         C["<b>④ Mensaje de sistema ensamblado · EL CACHE</b><br/>instrucciones + hasta 5 ejemplos (3 por defecto)<br/><i>Idéntico llamada tras llamada: es el prefijo<br/>que los proveedores pueden cachear</i>"]
@@ -67,12 +67,13 @@ El mensaje de sistema solo cambia si la petición cambia las opciones que lo con
 
 Que el proveedor cobre menos por él depende de su tamaño. Medido con `gpt-4o-mini` en llamadas repetidas:
 
-| `num_examples` | Tokens del mensaje de sistema | Tokens servidos desde cache |
+| `num_examples` | Tokens de entrada de la llamada | Tokens servidos desde cache |
 |---|---|---|
-| `3` (por defecto) | 895 | 0 |
-| `5` | 1473 | 1408 |
+| `0` | 177 | 0 |
+| `3` (por defecto) | 1137 | 1024 |
+| `5` | 1845 | 1792 |
 
-Con los tres ejemplos por defecto el mensaje queda por debajo del mínimo a partir del cual OpenAI cachea la entrada; con los cinco lo supera y casi todo el prefijo se sirve desde cache a partir de la segunda llamada. Con Anthropic habría que marcar además el bloque con `cache_control`, cosa que el servicio no hace.
+OpenAI cachea la entrada a partir de 1024 tokens. Sin ejemplos el mensaje no llega; con los tres por defecto ya lo supera, y a partir de la segunda llamada casi todo el prefijo se sirve desde cache. Con Anthropic habría que marcar además el bloque con `cache_control`, cosa que el servicio no hace.
 
 ### Cómo viaja una petición
 
@@ -265,7 +266,18 @@ Con `"evaluate": true`, `validation` indica si la estimación tiene desglose de 
 - `PROMPT_OUTPUT_BASIC` (activa): pide una estimación sin fijar la estructura, así que el modelo imita la de los ejemplos.
 - `PROMPT_OUTPUT_STRUCTURED`: fija resumen, tabla de tareas con horas y coste en EUR, totales, y riesgos y supuestos.
 
-Para cambiarla, edita `ACTIVE_OUTPUT_PROMPT`. El prompt de sistema incluye las tarifas de referencia: 62,50 EUR/hora para desarrollo y 50 EUR/hora para diseño.
+Para cambiarla, edita `ACTIVE_OUTPUT_PROMPT`. ### Tarifas
+
+El prompt de sistema da tarifas de referencia en EUR por hora, sin IVA, y los ejemplos están valorados con las mismas:
+
+| Perfil | EUR/hora |
+|---|---|
+| Desarrollo | 55 |
+| Diseño UI/UX | 45 |
+| Testing y QA | 40 |
+| Análisis, ingeniería de datos, migración de datos e integraciones con terceros | 60 |
+
+Son una estimación de lo que factura una agencia de software en España, no datos de un estudio de mercado. Para ajustarlas, cambia `RATES` en `app/services/llm_service.py` y el `rate` de las tareas en `app/context/examples.json`; un test comprueba que ambos coinciden.
 
 En Windows, Git Bash y PowerShell pueden enviar los acentos en una codificación que la API rechaza con un 400. Guarda el cuerpo en un archivo UTF-8 y envíalo con `--data-binary "@body.json"`, o usa Swagger.
 
@@ -323,7 +335,9 @@ estimador-cag/
 
 ### Añadir ejemplos de contexto
 
-Añade una entrada a `app/context/examples.json` con `meeting_summary`, `title`, `tasks` (nombre y horas), `team` y `duration`. El total de horas se calcula a partir de las tareas.
+Añade una entrada a `app/context/examples.json` con `meeting_summary`, `title`, `tasks`, `team` y `duration`. Cada tarea lleva `name`, `hours` y `rate` (EUR por hora del perfil que la hace). El coste de cada tarea y los totales de horas y de coste no se escriben: se calculan a partir de esos dos datos.
+
+Los ejemplos están en `app/` y no en `tests/` porque son datos de ejecución: la aplicación los inyecta en el prompt en cada llamada. Los tests los reutilizan como datos de prueba, pero no son suyos.
 
 ## Tests
 

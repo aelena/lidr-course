@@ -4,9 +4,12 @@ import re
 from app.context.examples import (
     ESTIMATION_EXAMPLES,
     RAW_EXAMPLES,
+    euros,
     format_examples_for_prompt,
     render_estimation,
     select_examples,
+    task_cost,
+    total_cost,
     total_hours,
 )
 from app.services import llm_service
@@ -31,14 +34,21 @@ def test_raw_examples_have_every_field_and_positive_hours():
             assert isinstance(task["hours"], int) and task["hours"] > 0
 
 
+def test_raw_examples_are_priced_at_the_rates_the_prompt_gives():
+    for example in RAW_EXAMPLES:
+        for task in example["tasks"]:
+            assert f"{task['rate']} EUR/hour" in llm_service.RATES, task["name"]
+
+
 def test_rendered_examples_follow_the_estimation_format():
     for raw, example in zip(RAW_EXAMPLES, ESTIMATION_EXAMPLES):
         estimation = example["estimation"]
         assert "### Desglose de tareas:" in estimation
-        assert len(re.findall(r"^\d+\. .+: \d+ horas$", estimation, re.M)) == len(
-            raw["tasks"]
-        )
+        assert len(
+            re.findall(r"^\d+\. .+: \d+ horas · [\d.]+ EUR$", estimation, re.M)
+        ) == len(raw["tasks"])
         assert f"**Total estimado: {total_hours(raw)} horas**" in estimation
+        assert f"**Coste total: {euros(total_cost(raw))} (sin IVA)**" in estimation
         assert f"**Equipo recomendado: {raw['team']}**" in estimation
         assert f"**Duración estimada: {raw['duration']}**" in estimation
 
@@ -47,13 +57,17 @@ def test_render_estimation_computes_total_from_tasks():
     rendered = render_estimation(
         {
             "title": "Demo",
-            "tasks": [{"name": "A", "hours": 10}, {"name": "B", "hours": 5}],
+            "tasks": [
+                {"name": "A", "hours": 10, "rate": 55},
+                {"name": "B", "hours": 20, "rate": 45},
+            ],
             "team": "1 desarrollador",
             "duration": "1 semana",
         }
     )
-    assert "1. A: 10 horas\n2. B: 5 horas" in rendered
-    assert "**Total estimado: 15 horas**" in rendered
+    assert "1. A: 10 horas · 550 EUR\n2. B: 20 horas · 900 EUR" in rendered
+    assert "**Total estimado: 30 horas**" in rendered
+    assert "**Coste total: 1.450 EUR (sin IVA)**" in rendered
 
 
 def test_select_examples_takes_the_first_n():
@@ -78,8 +92,11 @@ def test_format_examples_for_prompt_in_json():
     payload = block.split("<estimation>\n")[1].split("\n</estimation>")[0]
     data = json.loads(payload)
     assert data["title"] == RAW_EXAMPLES[0]["title"]
-    assert data["tasks"] == RAW_EXAMPLES[0]["tasks"]
+    assert data["tasks"] == [
+        {**task, "cost_eur": task_cost(task)} for task in RAW_EXAMPLES[0]["tasks"]
+    ]
     assert data["total_hours"] == total_hours(RAW_EXAMPLES[0])
+    assert data["total_cost_eur"] == total_cost(RAW_EXAMPLES[0]) == 8850
 
 
 def test_format_examples_for_prompt_with_no_examples_is_empty():

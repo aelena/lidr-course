@@ -1,7 +1,8 @@
 """Past estimations injected into the LLM prompt as reference.
 
-The data lives in examples.json; the total of each one is computed from its
-task breakdown.
+The data lives in examples.json. Each task has its hours and the hourly rate
+(EUR, excluding VAT) of the profile that does it; costs and totals are
+computed from those.
 """
 
 import json
@@ -18,15 +19,29 @@ def total_hours(estimation: Example) -> int:
     return sum(task["hours"] for task in estimation["tasks"])
 
 
+def task_cost(task: dict[str, Any]) -> int:
+    return task["hours"] * task["rate"]
+
+
+def total_cost(estimation: Example) -> int:
+    return sum(map(task_cost, estimation["tasks"]))
+
+
+def euros(amount: int) -> str:
+    """Spanish style: 10.925 EUR."""
+    return f"{amount:,} EUR".replace(",", ".")
+
+
 def render_estimation(estimation: Example) -> str:
     tasks = "\n".join(
-        f"{number}. {task['name']}: {task['hours']} horas"
+        f"{number}. {task['name']}: {task['hours']} horas · {euros(task_cost(task))}"
         for number, task in enumerate(estimation["tasks"], start=1)
     )
     return (
         f"## Estimación: {estimation['title']}\n\n"
         f"### Desglose de tareas:\n{tasks}\n\n"
         f"**Total estimado: {total_hours(estimation)} horas**\n"
+        f"**Coste total: {euros(total_cost(estimation))} (sin IVA)**\n"
         f"**Equipo recomendado: {estimation['team']}**\n"
         f"**Duración estimada: {estimation['duration']}**"
     )
@@ -36,8 +51,11 @@ def render_estimation_json(estimation: Example) -> str:
     return json.dumps(
         {
             "title": estimation["title"],
-            "tasks": estimation["tasks"],
+            "tasks": [
+                {**task, "cost_eur": task_cost(task)} for task in estimation["tasks"]
+            ],
             "total_hours": total_hours(estimation),
+            "total_cost_eur": total_cost(estimation),
             "team": estimation["team"],
             "duration": estimation["duration"],
         },

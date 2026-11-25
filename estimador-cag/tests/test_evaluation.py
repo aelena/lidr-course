@@ -14,6 +14,7 @@ from app.context.examples import ESTIMATION_EXAMPLES
 from app.services import llm_service
 from app.services.evaluation import (
     evaluate_estimation_structure,
+    extract_tasks,
     parse_number,
     sum_task_hours,
 )
@@ -85,6 +86,8 @@ def test_the_examples_format_is_valid():
             "has_team": True,
             "has_duration": True,
             "is_complete": True,
+            "has_total_cost": True,
+            "total_cost_matches_tasks": True,
         },
         "issues": [],
     }
@@ -107,6 +110,16 @@ def test_the_structured_format_is_valid_and_checks_the_costs():
         (BASIC.replace("**Duración estimada: ", "Plazo: "), "stop", ["has_duration"]),
         (BASIC, "length", ["is_complete"]),
         (BASIC, "max_tokens", ["is_complete"]),
+        (
+            BASIC.replace("Coste total: 8.850 EUR", "Coste total: 9.900 EUR"),
+            "stop",
+            ["total_cost_matches_tasks"],
+        ),
+        (
+            BASIC.replace("**Coste total: 8.850 EUR (sin IVA)**\n", ""),
+            "stop",
+            ["has_total_cost", "total_cost_matches_tasks"],
+        ),
         (
             STRUCTURED.replace("Total hours: 120", "Total hours: 150"),
             "stop",
@@ -165,6 +178,20 @@ def test_sum_task_hours_reads_bold_task_names_and_bold_hours():
     )
 
     assert sum_task_hours(estimation) == 120
+
+
+@pytest.mark.parametrize(
+    ("line", "cost"),
+    [
+        ("1. Backend API: 60 horas · 3.300 EUR", 3300),
+        ("1. **Backend API:** 60 horas (3.300 €)", 3300),
+        ("1. Backend API: 60 horas - EUR 3,300.00", 3300),
+        ("1. Backend API: 60 horas", None),
+        ("1. Backend API: 60 horas\n   - 2 endpoints por entidad", None),
+    ],
+)
+def test_numbered_tasks_carry_their_cost_when_it_is_on_the_line(line, cost):
+    assert extract_tasks(line) == [{"hours": 60, "cost": cost}]
 
 
 @pytest.mark.parametrize(

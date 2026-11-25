@@ -3,11 +3,11 @@
     "meeting_summary": "El cliente necesita una plataforma web de gestión de inventario para sus tres almacenes. Quiere dar de alta productos, registrar entradas y salidas de stock, y que cada empleado acceda con permisos según su rol. La dirección pide un panel con métricas de rotación y alertas de stock bajo.",
     "title": "Plataforma de Gestión de Inventario",
     "tasks": [
-      { "name": "Diseño UI/UX", "hours": 40 },
-      { "name": "Backend API (CRUD inventario)", "hours": 60 },
-      { "name": "Autenticación y roles", "hours": 20 },
-      { "name": "Dashboard con métricas", "hours": 30 },
-      { "name": "Testing y QA", "hours": 25 }
+      { "name": "Diseño UI/UX", "hours": 40, "rate": 45 },
+      { "name": "Backend API (CRUD inventario)", "hours": 60, "rate": 55 },
+      { "name": "Autenticación y roles", "hours": 20, "rate": 55 },
+      { "name": "Dashboard con métricas", "hours": 30, "rate": 55 },
+      { "name": "Testing y QA", "hours": 25, "rate": 40 }
     ],
     "team": "2 desarrolladores full-stack + 1 diseñador UX (part-time)",
     "duration": "6-8 semanas"
@@ -16,14 +16,14 @@
     "meeting_summary": "El cliente gestiona una red de clínicas dentales y quiere una app móvil para iOS y Android con la que los pacientes reserven, cambien y cancelen citas. Necesita recordatorios automáticos para reducir las ausencias, pago anticipado de la señal desde la app y un panel web para que recepción gestione la agenda de cada clínica.",
     "title": "App Móvil de Reserva de Citas",
     "tasks": [
-      { "name": "Diseño UI/UX móvil", "hours": 50 },
-      { "name": "App móvil multiplataforma (iOS y Android)", "hours": 120 },
-      { "name": "Backend API (citas y disponibilidad)", "hours": 70 },
-      { "name": "Notificaciones push y recordatorios", "hours": 25 },
-      { "name": "Integración con pasarela de pago", "hours": 30 },
-      { "name": "Panel web de recepción", "hours": 45 },
-      { "name": "Testing y QA", "hours": 40 },
-      { "name": "Publicación en App Store y Google Play", "hours": 15 }
+      { "name": "Diseño UI/UX móvil", "hours": 50, "rate": 45 },
+      { "name": "App móvil multiplataforma (iOS y Android)", "hours": 120, "rate": 55 },
+      { "name": "Backend API (citas y disponibilidad)", "hours": 70, "rate": 55 },
+      { "name": "Notificaciones push y recordatorios", "hours": 25, "rate": 55 },
+      { "name": "Integración con pasarela de pago", "hours": 30, "rate": 60 },
+      { "name": "Panel web de recepción", "hours": 45, "rate": 55 },
+      { "name": "Testing y QA", "hours": 40, "rate": 40 },
+      { "name": "Publicación en App Store y Google Play", "hours": 15, "rate": 55 }
     ],
     "team": "2 desarrolladores móviles + 1 desarrollador backend + 1 diseñador UX (part-time)",
     "duration": "10-12 semanas"
@@ -32,14 +32,14 @@
     "meeting_summary": "El cliente vende productos de cosmética natural en tienda física y quiere una tienda online propia. Necesita catálogo con variantes y filtros, carrito y pago con tarjeta y Bizum, cálculo de envíos por zona, y un panel para gestionar pedidos, devoluciones y cupones de descuento. El stock debe sincronizarse con el ERP que ya usan en la tienda.",
     "title": "Tienda Online con Integración ERP",
     "tasks": [
-      { "name": "Diseño UI/UX", "hours": 55 },
-      { "name": "Catálogo de productos (variantes, filtros y búsqueda)", "hours": 60 },
-      { "name": "Carrito y checkout", "hours": 45 },
-      { "name": "Integración con pasarela de pago", "hours": 30 },
-      { "name": "Cálculo de envíos por zona", "hours": 20 },
-      { "name": "Panel de administración (pedidos, devoluciones y cupones)", "hours": 65 },
-      { "name": "Sincronización de stock con el ERP", "hours": 50 },
-      { "name": "Testing y QA", "hours": 45 }
+      { "name": "Diseño UI/UX", "hours": 55, "rate": 45 },
+      { "name": "Catálogo de productos (variantes, filtros y búsqueda)", "hours": 60, "rate": 55 },
+      { "name": "Carrito y checkout", "hours": 45, "rate": 55 },
+      { "name": "Integración con pasarela de pago", "hours": 30, "rate": 60 },
+      { "name": "Cálculo de envíos por zona", "hours": 20, "rate": 55 },
+      { "name": "Panel de administración (pedidos, devoluciones y cupones)", "hours": 65, "rate": 55 },
+      { "name": "Sincronización de stock con el ERP", "hours": 50, "rate": 60 },
+      { "name": "Testing y QA", "hours": 45, "rate": 40 }
     ],
     "team": "2 desarrolladores full-stack + 1 desarrollador backend + 1 diseñador UX (part-time)",
     "duration": "10-12 semanas"
@@ -48,14 +48,14 @@
     "meeting_summary": "El cliente es una empresa de logística que reparte sus datos entre tres sistemas: el de gestión de flota, el de facturación y varias hojas de cálculo. La dirección quiere un cuadro de mando único con indicadores de entregas a tiempo, coste por ruta y ocupación de vehículos, actualizado cada noche, con filtros por delegación y exportación a PDF.",
     "title": "Cuadro de Mando de Operaciones Logísticas",
     "tasks": [
-      { "name": "Análisis de fuentes y definición de indicadores", "hours": 30 },
-      { "name": "Pipelines de carga de datos (3 fuentes)", "hours": 75 },
-      { "name": "Modelo de datos y almacén", "hours": 40 },
-      { "name": "Backend API de indicadores", "hours": 35 },
-      { "name": "Dashboard web con filtros por delegación", "hours": 60 },
-      { "name": "Exportación de informes a PDF", "hours": 15 },
-      { "name": "Autenticación y roles", "hours": 20 },
-      { "name": "Testing y QA", "hours": 30 }
+      { "name": "Análisis de fuentes y definición de indicadores", "hours": 30, "rate": 60 },
+      { "name": "Pipelines de carga de datos (3 fuentes)", "hours": 75, "rate": 60 },
+      { "name": "Modelo de datos y almacén", "hours": 40, "rate": 60 },
+      { "name": "Backend API de indicadores", "hours": 35, "rate": 55 },
+      { "name": "Dashboard web con filtros por delegación", "hours": 60, "rate": 55 },
+      { "name": "Exportación de informes a PDF", "hours": 15, "rate": 55 },
+      { "name": "Autenticación y roles", "hours": 20, "rate": 55 },
+      { "name": "Testing y QA", "hours": 30, "rate": 40 }
     ],
     "team": "1 ingeniero de datos + 1 desarrollador full-stack + 1 diseñador UX (part-time)",
     "duration": "8-10 semanas"
@@ -64,15 +64,15 @@
     "meeting_summary": "El cliente, una gestoría, trabaja con una aplicación de escritorio de hace quince años que solo funciona en los ordenadores de la oficina. Quiere pasarla a web para que el equipo trabaje en remoto: gestión de clientes y expedientes, calendario de vencimientos fiscales con avisos por correo, y un área privada donde los clientes suban documentos. Hay que migrar los datos históricos sin parar la actividad.",
     "title": "Migración a Web de la Aplicación de Gestión de Expedientes",
     "tasks": [
-      { "name": "Análisis de la aplicación actual y de sus datos", "hours": 35 },
-      { "name": "Diseño UI/UX", "hours": 45 },
-      { "name": "Backend API (clientes y expedientes)", "hours": 80 },
-      { "name": "Calendario de vencimientos y avisos por correo", "hours": 35 },
-      { "name": "Área privada de clientes con subida de documentos", "hours": 50 },
-      { "name": "Autenticación y roles", "hours": 25 },
-      { "name": "Migración de datos históricos", "hours": 60 },
-      { "name": "Testing y QA", "hours": 45 },
-      { "name": "Puesta en marcha en paralelo y formación", "hours": 20 }
+      { "name": "Análisis de la aplicación actual y de sus datos", "hours": 35, "rate": 60 },
+      { "name": "Diseño UI/UX", "hours": 45, "rate": 45 },
+      { "name": "Backend API (clientes y expedientes)", "hours": 80, "rate": 55 },
+      { "name": "Calendario de vencimientos y avisos por correo", "hours": 35, "rate": 55 },
+      { "name": "Área privada de clientes con subida de documentos", "hours": 50, "rate": 55 },
+      { "name": "Autenticación y roles", "hours": 25, "rate": 55 },
+      { "name": "Migración de datos históricos", "hours": 60, "rate": 60 },
+      { "name": "Testing y QA", "hours": 45, "rate": 40 },
+      { "name": "Puesta en marcha en paralelo y formación", "hours": 20, "rate": 55 }
     ],
     "team": "2 desarrolladores full-stack + 1 desarrollador backend + 1 diseñador UX (part-time)",
     "duration": "12-14 semanas"

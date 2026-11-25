@@ -10,8 +10,11 @@ import re
 from typing import Any
 
 NUMBER = r"\d[\d.,]*"
+# "1. Backend API: 60 horas", optionally followed by "· 3.300 EUR" on the same line.
 NUMBERED_TASK = re.compile(
-    rf"^\s*\d+\.\s+.+?:\s*\**\s*({NUMBER})\**\s*(?:horas|hours|h)\b", re.M | re.I
+    rf"^\s*\d+\.\s+.+?:\s*\**\s*({NUMBER})\**\s*(?:horas|hours|h)\b"
+    rf"(?:[^\n\d]*?(?:(?:EUR|€)\s*({NUMBER})|({NUMBER})\s*(?:EUR|€)))?",
+    re.M | re.I,
 )
 HOURS_CELL = re.compile(rf"^({NUMBER})\s*(?:horas|hours|h)?$", re.I)
 COST_CELL = re.compile(rf"^(?:EUR|€)?\s*({NUMBER})\s*(?:EUR|€)?$", re.I)
@@ -71,8 +74,13 @@ def extract_tasks(estimation: str) -> list[dict[str, float | None]]:
     if tasks:
         return tasks
     return [
-        {"hours": parse_number(value), "cost": None}
-        for value in NUMBERED_TASK.findall(estimation)
+        {
+            "hours": parse_number(hours),
+            "cost": parse_number(cost_after or cost_before)
+            if cost_after or cost_before
+            else None,
+        }
+        for hours, cost_after, cost_before in NUMBERED_TASK.findall(estimation)
     ]
 
 

@@ -57,10 +57,12 @@ ROLE = (
     "on a meeting transcription provided by the user."
 )
 
+# Estimated billing rates of a Spanish software agency; the examples use the same ones.
 RATES = (
-    "Use a developer rate of approximately 62.50 EUR/hour (500 EUR/day) and a designer "
-    "rate of approximately 50 EUR/hour (400 EUR/day). Provide realistic, well-justified "
-    "numbers."
+    "Price the work at Spanish market rates, in EUR and excluding VAT: approximately "
+    "55 EUR/hour for development, 45 EUR/hour for UI/UX design, 40 EUR/hour for testing "
+    "and QA, and 60 EUR/hour for analysis, data engineering, data migration and "
+    "third-party integrations. Provide realistic, well-justified numbers."
 )
 
 EXAMPLES_INTRO = (
@@ -79,7 +81,7 @@ Generate the estimation with this exact structure:
 
 ## Task breakdown
 | Task | Hours | Cost (EUR) |
-[one row per task; cost = hours * 62.50 EUR for developer tasks]
+[one row per task; cost = hours * the hourly rate of the profile doing it]
 
 ## Totals
 - Total hours: [number]
